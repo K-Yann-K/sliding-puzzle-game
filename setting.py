@@ -8,5 +8,5 @@ width = 1100
 height = 640
 fps = 60
 title = "Sliding Puzzle Game"
-titlesize = 128
+tilesize = 128
 game_size = 3
