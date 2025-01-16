@@ -12,6 +12,12 @@ class Game:
         self.clock = pygame.time.Clock()
         self.image = pygame.image.load("Image/source.jpg")  
         self.image = pygame.transform.scale(self.image, (game_size * tilesize, game_size * tilesize))
+        self.shuffle_time = 0
+        self.start_shuffle = False
+        self.previous_choice = ""
+        self.start_game = False
+        self.start_timer = 0
+        self.elapsed_time = 0
 
     def create_game(self):
         grid = []
@@ -23,6 +29,43 @@ class Game:
                 number += 1
         grid[-1][-1] = 0
         return grid
+    
+    def shuffle(self):
+        possible_moves = []
+        for row, tiles in enumerate(self.tiles):
+            for col, tile in enumerate(tiles):
+                if tile.text == "empty":
+                    if tile.right():
+                        possible_moves.append("right")
+                    if tile.left():
+                        possible_moves.append("left")
+                    if tile.up():
+                        possible_moves.append("up")
+                    if tile.down():
+                        possible_moves.append("down")
+                    break
+            if len(possible_moves) > 0:
+                break
+            
+        if self.previous_choice == "right":
+            possible_moves.remove("left") if "left" in possible_moves else possible_moves
+        elif self.previous_choice == "left":
+            possible_moves.remove("right") if "right" in possible_moves else possible_moves
+        elif self.previous_choice == "up":
+            possible_moves.remove("down") if "down" in possible_moves else possible_moves
+        elif self.previous_choice == "down":
+            possible_moves.remove("up") if "up" in possible_moves else possible_moves
+            
+        choice = random.choice(possible_moves)
+        self.previous_choice = choice
+        if choice == "right":
+            self.tiles_grid[row][col], self.tiles_grid[row][col + 1] = self.tiles_grid[row][col + 1], self.tiles_grid[row][col]
+        elif choice == "left":
+            self.tiles_grid[row][col], self.tiles_grid[row][col - 1] = self.tiles_grid[row][col - 1], self.tiles_grid[row][col]
+        elif choice == "up":
+            self.tiles_grid[row][col], self.tiles_grid[row - 1][col] = self.tiles_grid[row - 1][col], self.tiles_grid[row][col]           
+        elif choice == "down":
+            self.tiles_grid[row][col], self.tiles_grid[row + 1][col] = self.tiles_grid[row + 1][col], self.tiles_grid[row][col]
 
     def draw_tiles(self):
         self.tiles = []
@@ -38,6 +81,9 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         self.tiles_grid = self.create_game()
         self.tiles_grid_completed = self.create_game()
+        self.button_list = []
+        self.button_list.append(Button(775, 100, 200, 50, "Shuffle", white, black))
+        self.button_list.append(Button(775, 170, 200, 50, "Reset", white, black))
         self.draw_tiles()
 
     def run(self):
@@ -50,6 +96,12 @@ class Game:
 
     def update(self):
         self.all_sprites.update()
+        if self.start_shuffle:
+            self.shuffle()
+            self.draw_tiles()
+            self.shuffle_time += 1
+            if self.shuffle_time > 120:
+                self.start_shuffle = False
 
     def draw_grid(self):
         for row in range(-1, game_size * tilesize, tilesize):
@@ -61,6 +113,9 @@ class Game:
         self.screen.fill(bgcolour)
         self.all_sprites.draw(self.screen)
         self.draw_grid()
+        for button in self.button_list:
+            button.draw(self.screen)
+
         pygame.display.flip()
 
     def events(self):
@@ -86,6 +141,15 @@ class Game:
                                 self.tiles_grid[row][col], self.tiles_grid[row + 1][col] = self.tiles_grid[row + 1][col], self.tiles_grid[row][col]
 
                             self.draw_tiles()
+                            
+                for button in self.button_list:
+                    if button.click(mouse_x, mouse_y):
+                        if button.text == "Shuffle":
+                            self.shuffle_time = 0
+                            self.start_shuffle = True
+                        if button.text == "Reset":
+                            self.new()
+            
 
 
 game = Game()
