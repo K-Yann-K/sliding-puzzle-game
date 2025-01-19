@@ -16,8 +16,18 @@ class Game:
         self.start_shuffle = False
         self.previous_choice = ""
         self.start_game = False
-        self.start_timer = 0
+        self.start_timer = False
         self.elapsed_time = 0
+        self.high_score = float(self.get_high_scores()[0])
+        
+    def get_high_scores(self):
+        with open("high_score.txt", "r") as file:
+            scores = file.read().splitlines()
+        return scores
+    
+    def save_score(self):
+        with open("high_score.txt", "w") as file:
+            file.write(str("%.3f\n" % self.high_score))
 
     def create_game(self):
         grid = []
@@ -81,6 +91,9 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         self.tiles_grid = self.create_game()
         self.tiles_grid_completed = self.create_game()
+        self.elapsed_time = 0
+        self.start_timer = False
+        self.start_game = False
         self.button_list = []
         self.button_list.append(Button(775, 100, 200, 50, "Shuffle", white, black))
         self.button_list.append(Button(775, 170, 200, 50, "Reset", white, black))
@@ -95,13 +108,30 @@ class Game:
             self.draw()
 
     def update(self):
-        self.all_sprites.update()
+        if self.start_game:
+            if self.tiles_grid == self.tiles_grid_completed:
+                self.start_game = False
+                if self.high_score > 0:
+                    self.high_score = self.elapsed_time if self.elapsed_time < self.high_score else self.high_score
+                else:
+                    self.high_score = self.elapsed_time
+                self.save_score()
+                
+            if self.start_timer:
+                self.timer = time.time()
+                self.start_timer = False
+            self.elapsed_time = time.time() - self.timer 
         if self.start_shuffle:
             self.shuffle()
             self.draw_tiles()
             self.shuffle_time += 1
             if self.shuffle_time > 120:
                 self.start_shuffle = False
+                self.start_game = True
+                self.start_timer = True
+        
+        self.all_sprites.update()
+                
 
     def draw_grid(self):
         for row in range(-1, game_size * tilesize, tilesize):
@@ -115,7 +145,8 @@ class Game:
         self.draw_grid()
         for button in self.button_list:
             button.draw(self.screen)
-
+        UIElement(710, 380, "High Score - %.3f" % (self.high_score if self.high_score > 0 else 0)).draw(self.screen) 
+        UIElement(825, 35, "%.3f" % self.elapsed_time).draw(self.screen)
         pygame.display.flip()
 
     def events(self):
